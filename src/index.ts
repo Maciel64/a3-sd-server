@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { microApi, shotApi } from "./infra/api";
 import cors from "@elysia/cors";
 import { residentRepositoryPlugin } from "./repositories/resident.repository";
+import { s3StorageProviderPlugin } from "./providers/s3.storage.provider";
 
 const app = new Elysia().get("/", () => "Hello Elysia").listen(3001);
 
@@ -16,10 +17,17 @@ interface EmbeddingResponse {
 app.group('api', app => 
   app
   .use(residentRepositoryPlugin)
-  .post('embeed', async ({ request, set, residentRepository }) => {
+  .use(s3StorageProviderPlugin)
+  .get('residents', async ({ residentRepository }) => {
+    const users = await residentRepository.getAll()
+
+    return users
+  })
+  .post('embeed', async ({ request, set, residentRepository, s3StorageProvider }) => {
     const body = await request.formData();
+
     const name = body.get('name') as string | null
-    const photo = body.get('photo')
+    const photo = body.get('photo') as File | null
 
     if (!name || !photo) {
       set.status = 400
@@ -60,12 +68,17 @@ app.group('api', app =>
       }
     }
 
+    const photoBuffer = Buffer.from(await photo.arrayBuffer())
+    const photoUrl = await s3StorageProvider.upload(photoBuffer, `${new Date().getTime()}.png`)
+
     await residentRepository.create({
       name,
-      embedding: response.embedding
+      embedding: response.embedding,
+      photo: photoUrl 
     })
 
     const resident = await residentRepository.findByName(name)
+
 
     return { success: !!resident, resident };
   })

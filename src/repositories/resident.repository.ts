@@ -7,20 +7,28 @@ import { createId } from '@paralleldrive/cuid2'
 export interface CreateResidentInput {
   name: string;
   embedding: number[];
+  photo: string
 }
 
 export class ResidentRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async getAll() {
+    const residents = await this.prisma.resident.findMany()
+
+    return residents
+  }
+
   async create(data: CreateResidentInput) {
     await this.prisma.$executeRaw`
-      INSERT INTO "Resident" (id, name, embedding, "createdAt", "updatedAt")
+      INSERT INTO "Resident" (id, name, embedding, "createdAt", "updatedAt", photo)
       VALUES (
         ${createId()},
         ${data.name},
         ${JSON.stringify(data.embedding)}::vector,
         ${new Date()},
-        ${new Date()}
+        ${new Date()},
+        ${data.photo}
       )
     `
   }
