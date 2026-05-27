@@ -16,22 +16,58 @@ interface EmbeddingResponse {
 app.group('api', app => 
   app
   .use(residentRepositoryPlugin)
-  .post('embeed', async ({ request, residentRepository }) => {
+  .post('embeed', async ({ request, set, residentRepository }) => {
     const body = await request.formData();
+    const name = body.get('name') as string | null
+    const photo = body.get('photo')
+
+    if (!name || !photo) {
+      set.status = 400
+      return {
+        error: 'Nome e foto são obrigatórios'
+      }
+    }
+
+    const existingByName = await residentRepository.findByName(name)
+    
+    if (existingByName) {
+      set.status = 409
+      return {
+        error: `Residente já ${existingByName.name} cadastrado`
+      }
+    }
 
     const response = await shotApi<EmbeddingResponse>('/embeed', {
       method: 'POST',
       body
     })
 
-    const name = body.get('name') as string
+    if (!response.embedding) {
+      set.status = 400
 
-    const resident = await residentRepository.create({
-      name: 'Maciel',
+      return {
+        error: 'Erro ao gerar embedding'
+      }
+    }
+
+    const existingByEmbedding = await residentRepository.recognize(response.embedding)
+
+    if (existingByEmbedding) {
+      set.status = 409
+
+      return {
+        error: `Residente já ${existingByEmbedding.name} cadastrado`
+      }
+    }
+
+    await residentRepository.create({
+      name,
       embedding: response.embedding
     })
 
-    return resident;
+    const resident = await residentRepository.findByName(name)
+
+    return { success: !!resident, resident };
   })
 
   .post('recognize', async ({ request, residentRepository }) => {
