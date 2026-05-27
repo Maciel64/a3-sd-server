@@ -1,1 +1,1 @@
-export const THRESHOLD_DISTANCE = 0.25
+export const THRESHOLD_DISTANCE = 0.25;

@@ -2,25 +2,25 @@ import Elysia from "elysia";
 import { PrismaClient, Resident } from "../generated/prisma/client";
 import { prismaPlugin } from "../infra/db";
 import { THRESHOLD_DISTANCE } from "../constants/recognize";
-import { createId } from '@paralleldrive/cuid2'
+import { createId } from "@paralleldrive/cuid2";
 
 export interface CreateResidentInput {
-  name: string;
-  embedding: number[];
-  photo: string
+	name: string;
+	embedding: number[];
+	photo: string;
 }
 
 export class ResidentRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+	constructor(private readonly prisma: PrismaClient) {}
 
-  async getAll() {
-    const residents = await this.prisma.resident.findMany()
+	async getAll() {
+		const residents = await this.prisma.resident.findMany();
 
-    return residents
-  }
+		return residents;
+	}
 
-  async create(data: CreateResidentInput) {
-    await this.prisma.$executeRaw`
+	async create(data: CreateResidentInput) {
+		await this.prisma.$executeRaw`
       INSERT INTO "Resident" (id, name, embedding, "createdAt", "updatedAt", photo)
       VALUES (
         ${createId()},
@@ -30,20 +30,20 @@ export class ResidentRepository {
         ${new Date()},
         ${data.photo}
       )
-    `
-  }
+    `;
+	}
 
-  async findByName(name: string) {
-    const residents = await this.prisma.resident.findFirst({
-      where: {
-        name
-      }
-    })
-    return residents
-  }
+	async findByName(name: string) {
+		const residents = await this.prisma.resident.findFirst({
+			where: {
+				name,
+			},
+		});
+		return residents;
+	}
 
-  async recognize(embeed: number[]): Promise<Resident | null> {
-    const resident = await this.prisma.$queryRaw`
+	async recognize(embeed: number[]): Promise<Resident | null> {
+		const resident = (await this.prisma.$queryRaw`
         SELECT
         id,
         name,
@@ -55,18 +55,15 @@ export class ResidentRepository {
       WHERE ${JSON.stringify(embeed)}::vector <=> embedding < ${THRESHOLD_DISTANCE}
       ORDER BY distance ASC
       LIMIT 1;
-    ` as Resident[]
+    `) as Resident[];
 
-    return resident?.[0] ?? null
-  }
+		return resident?.[0] ?? null;
+	}
 }
 
-export const residentRepositoryPlugin = (app: Elysia) => 
-  app
-    .use(prismaPlugin)
-    .resolve(({ prisma }) => {
-      return {
-        'residentRepository': new ResidentRepository(prisma)
-      }
-    })
-
+export const residentRepositoryPlugin = (app: Elysia) =>
+	app.use(prismaPlugin).resolve(({ prisma }) => {
+		return {
+			residentRepository: new ResidentRepository(prisma),
+		};
+	});
