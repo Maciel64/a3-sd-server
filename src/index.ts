@@ -4,7 +4,7 @@ import cors from "@elysia/cors";
 import { residentRepositoryPlugin } from "./repositories/resident.repository";
 import { s3StorageProviderPlugin } from "./providers/s3.storage.provider";
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3001);
+export const app = new Elysia().get("/", () => "Hello Elysia");
 
 app.use(cors({
   origin: '*'
@@ -100,3 +100,5 @@ app.group('api', app =>
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 );
+
+export default app
