@@ -130,7 +130,7 @@ app.group("api", (app) =>
 					set.status = 409;
 
 					return {
-						error: `Residente já ${existingByEmbedding.name} cadastrado`,
+						error: `Residente ${existingByEmbedding.name} já cadastrado`,
 					};
 				}
 
@@ -185,7 +185,7 @@ app.group("api", (app) =>
 
 		.post(
 			"recognize",
-			async ({ body, residentRepository, configRepository }) => {
+			async ({ body, set, residentRepository, configRepository }) => {
 				const { photo } = body;
 
 				const formData = new FormData();
@@ -210,7 +210,8 @@ app.group("api", (app) =>
 						});
 					}
 
-					return { success: false };
+					set.status = 404;
+					return { success: false, error: "Residente não encontrado" };
 				}
 
 				const mappedResident = {
@@ -238,6 +239,10 @@ app.group("api", (app) =>
 					200: t.Object({
 						success: t.Boolean(),
 						resident: t.Optional(ResidentResponseDTO),
+					}),
+					404: t.Object({
+						success: t.Boolean(),
+						error: t.String(),
 					}),
 				},
 			},

@@ -8,4 +8,8 @@ export const shotApi = <T>(path: string, options?: RequestInit) =>
 	});
 
 export const microApi = <T>(path: string, options?: RequestInit) =>
-	fetch(`${path}`, options).then((r) => r.json() as T);
+	fetch(`${path}`, options)
+		.then((r) => r.json() as T)
+		.catch((e) => {
+			console.log(e);
+		});
